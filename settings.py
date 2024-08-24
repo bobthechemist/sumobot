@@ -1,7 +1,8 @@
 # These settings affect the behaviors of your sumobot, such as how fast it moves and
 #   how wide of an arc it searches.
 
-MAX_SPEED = .5 # Ranges from 0 (doesn't move at all) to 1 (as fast as possible)
+MAX_SPEED = 1 # Ranges from 0 (doesn't move at all) to 1 (as fast as possible)
+MAX_DISTANCE = 500
 
 TURN_DURATION = 0.2 # Number of seconds that the bot spends turning.
 
