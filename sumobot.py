@@ -3,7 +3,7 @@ import board # pin identification information
 import digitalio # for various digital IO operations
 from adafruit_vl53l0x import VL53L0X # for the TOF sensors
 import busio # for I2C communication with TOF sensor
-from time import sleep
+from time import sleep, monotonic
 import keypad # To handle keypresses nicely
 from adafruit_motor.motor import DCMotor # for DC motors
 import pwmio # To adjust speeds
@@ -55,6 +55,30 @@ motor_left = DCMotor(
     pwmio.PWMOut(LEFT_MOTOR_PIN_B, frequency=50),
 )
 
+
+# Utility to log events to the serial monitor
+
+# Define logging levels - based on the logging library
+LOG_NOTSET      =  0
+LOG_DEBUG       = 10
+LOG_INFO        = 20
+LOG_WARNING     = 30
+LOG_ERROR       = 40
+LOG_CRITICAL    = 50
+
+# User sets LOG_LEVEL in settings.py
+
+def log(message, level = LOG_NOTSET):
+    '''
+    TODO: Expand message types (log level). Current none (0) or all (1)
+
+    message: the message to log
+    mlevel : the level of the message (integer, higher values get printed more frequently)
+    '''
+    if level >= LOG_LEVEL:
+        print(f'({level}-{monotonic()}): {message}')
+
+
 # Sumobot movements
 # Tuples are assigned based upon looking in the same direction as the bot, so (1, -1) drives the
 # left wheel forward and the right wheel backwards. Note this will cause confusion on which wheel is
@@ -70,18 +94,17 @@ BACK_LEFT = (-1, 0)
 BACK_RIGHT = (0, -1)
 STOP = (0, 0)
 
-def move(direction, duration):
+def move(direction):
     '''
     Sets the motor throttles for the given direction. Naming convention needs to be reviewed.
     For testing purposes, there is a duration. However, in production code, this function should only
     set the throttles and allow the state to control timing.
     '''
     motor_right.throttle = direction[0] * MAX_SPEED
-    print(f'speed: {direction[0] * MAX_SPEED}')
+
     motor_left.throttle = direction[1] * MAX_SPEED
-    sleep(duration)
-    motor_right.throttle = 0
-    motor_left.throttle = 0
+    log(f'Motors activated ({motor_left.throttle},{motor_right.throttle})', LOG_DEBUG)
+
 
 
 class TOF():
@@ -120,7 +143,7 @@ tof_right = TOF(address = 0x29, pins = TOF_RIGHT_I2C_PINS, toggle = I2C_RIGHT_TO
 try:
     tof_left.initialize()
 except ValueError:
-    print('odd ValueError ... working around it.')
+    log('odd ValueError ... working around it.', LOG_DEBUG)
 finally:
     tof_right.initialize()
     tof_left.initialize()
@@ -141,13 +164,19 @@ def get_conditions():
     '''
     Returns a dictionary of conditions
     '''
-    return {
-        "edge_left":edge_left.value,
-        "edge_right":edge_right.value,
+    condition_dict = {
+        "edge_left": not edge_left.value,
+        "edge_right": not edge_right.value,
         "tof_left": tof_left.distance(),
         "tof_right": tof_right.distance(),
         "key_events": keypad.events.get(),
         }
+    condition_dict["tof_diff"] = condition_dict["tof_left"] - condition_dict["tof_right"]
+
+    return condition_dict
+
+
+
 
 # Initialize pixels
 pixels = neopixel.NeoPixel(NEO_PIXEL_PIN, 2, brightness=0.1)
