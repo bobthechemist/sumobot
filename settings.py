@@ -4,9 +4,12 @@
 MAX_SPEED = 1 # Ranges from 0 (doesn't move at all) to 1 (as fast as possible)
 MAX_DISTANCE = 500
 
-TURN_DURATION = 0.2 # Number of seconds that the bot spends turning.
+TURN_DURATION = 0.2 # Number of seconds that the bot spends turning. ***NOT CURRENTLY USED***
 
 CHARGE_DURATION = 5 # Time to charge before giving up
+CHARGE_TOLERANCE = 20 # Difference between TOF sensors that triggers a right/left shift
+
+RETREAT_TIME = 0.5 # Time used in backing up and spinning during a retreat
 
 AVOIDANCE_TIME = 1 # Time to spend during the edge avoidance movement
 
@@ -15,6 +18,7 @@ AVOIDANCE_TIME = 1 # Time to spend during the edge avoidance movement
 WAITING_TIME = 5 # DO NOT CHANGE THIS VALUE! It is the time your bot waits to start battling and must be the same for all bots
 
 LOG_LEVEL = 20 # Sets amount of logging. See below for values, but the way the code is currently written, must use numbers.
+# Although not yet tested, setting the LOG_LEVEL to 99 should stop all logging and may speed up bot response
 '''
 LOG_NOTSET      =  0
 LOG_DEBUG       = 10

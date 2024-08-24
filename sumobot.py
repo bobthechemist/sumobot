@@ -70,10 +70,8 @@ LOG_CRITICAL    = 50
 
 def log(message, level = LOG_NOTSET):
     '''
-    TODO: Expand message types (log level). Current none (0) or all (1)
-
     message: the message to log
-    mlevel : the level of the message (integer, higher values get printed more frequently)
+    mlevel : the level of the message (integer)
     '''
     if level >= LOG_LEVEL:
         print(f'({level}-{monotonic()}): {message}')
@@ -97,8 +95,7 @@ STOP = (0, 0)
 def move(direction):
     '''
     Sets the motor throttles for the given direction. Naming convention needs to be reviewed.
-    For testing purposes, there is a duration. However, in production code, this function should only
-    set the throttles and allow the state to control timing.
+    Should consider a second argument to provide fine control of wheel speed (for turning)
     '''
     motor_right.throttle = direction[0] * MAX_SPEED
 
@@ -106,7 +103,7 @@ def move(direction):
     log(f'Motors activated ({motor_left.throttle},{motor_right.throttle})', LOG_DEBUG)
 
 
-
+# We create a class for the TOF sensor because we need to incorporate signal averaging and an offset.
 class TOF():
     '''
     Initializes a TOF sensor, allows for some corrections such as an offset, and allows for some signal averaging

@@ -22,12 +22,12 @@ state = {
     "TESTING"   : 6, # A special state for debugging
 }
 
-
+# Make it easy to get the state name from its number
 state_name = {v: k for k, v in state.items()}
 
 # FSM variables
 current_state = state["IDLE"]
-previous_state = state["TESTING"]
+previous_state = state["TESTING"] # This forces the logger to log the first entry into IDLE
 last_state_change_time = 0
 timer = [0] * len(state) # Give each state a timer for things like blinking lights, moving motors
 microstate = None # Needed a global variable in some states (e.g. in what direction is an edge being avoided
@@ -35,11 +35,15 @@ testing = False # Set to true to enter the TESTING state instead of starting a m
 
 # FSM update function
 def update_fsm():
+    '''
+    The state machine is a bunch of conditional statements that follow the general template of an entrance conditional, update statements,
+        and an exit conditional.
+    '''
     global current_state, previous_state, microstate, last_state_change_time, conditions, testing
 
     if current_state == state["IDLE"]:
         '''
-        What does this state do?
+        What does this state do? It does nothing except wait for a button press to move on to the next state.
         '''
         # Variables useful for this state
         pixels_on = (255,0,0)
@@ -76,7 +80,7 @@ def update_fsm():
 
     elif current_state == state["WAITING"]:
         '''
-        What does this state do?
+        What does this state do? It performs the five second (with blinking lights) delay before the bot can start attacking.
         '''
         pixels_on = (0,0,255)
         pixels_off = (0,0,0)
@@ -94,7 +98,7 @@ def update_fsm():
             current_state = state["SEARCHING"]
             last_state_change_time = time.monotonic()
         elif time.monotonic() - timer[current_state] > 0.5:
-            # In this state, both pixels are the same color
+            # In this state, both pixels are the same color, so we only probe the first one.
             timer[current_state] = time.monotonic()
             log(f'Pixel status in WAITING {pixels}', LOG_DEBUG)
             if pixels[0] == pixels_on:
@@ -110,7 +114,8 @@ def update_fsm():
 
     elif current_state == state["SEARCHING"]:
         '''
-        What does this state do?
+        What does this state do? It rotates the bot to the right until it senses an opponent, at which point
+            it switches to the CHARGING state. It will pay attention to the edge and enter AVOIDING if necessary.
         '''
         pixels_on = (0,255,0)
         pixels_off = (0,0,0)
@@ -143,7 +148,8 @@ def update_fsm():
 
     elif current_state == state["CHARGING"]:
         '''
-        What does this state do?
+        What does this state do? It heads toward the opponent, adjusting left/right as needed. It will back off
+            after a user-defined time and try to attack again.
         '''
         pixels_on = (255,255,0)
         pixels_off = (0,0,0)
@@ -160,7 +166,7 @@ def update_fsm():
             print("Edge detected, transitioning to AVOIDING state.")
             current_state = state["AVOIDING"]
             last_state_change_time = time.monotonic()
-        if abs(conditions["tof_diff"]) > 20: # Bot might be heading in the wrong direction
+        if abs(conditions["tof_diff"]) > CHARGE_TOLERANCE: # Bot might be heading in the wrong direction
             log("Shifting approach", LOG_DEBUG)
             if conditions["tof_diff"] > 0: # Bot needs to turn right
                 move(RIGHT)
@@ -168,7 +174,7 @@ def update_fsm():
                 move(LEFT)
         else:
             move(FORWARD)
-        if time.monotonic() - timer[current_state] > CHARGE_DURATION: # Been charging for too long, give up
+        if time.monotonic() - timer[current_state] > CHARGE_DURATION: # Give up on charging forward
             log("Stalemate detected, retreating", LOG_INFO)
             current_state = state["RETREATING"]
             last_state_change_time = time.monotonic()
@@ -181,7 +187,8 @@ def update_fsm():
 
     elif current_state == state["RETREATING"]:
         '''
-        What does this state do?
+        What does this state do? The bot backs up from where it thinks there is an opponent. It makes a hard left turn
+            and then resumes searching. It will continue to monitor for the edge.
         '''
         pixels_on = (0,255,255)
         pixels_off = (0,0,0)
@@ -199,9 +206,9 @@ def update_fsm():
             log("Edge detected, switching to AVOIDING state.", LOG_INFO)
             current_state = state["AVOIDING"]
             last_state_change_time = time.monotonic()
-        if time.monotonic() - timer[current_state] > 0.5:
+        if time.monotonic() - timer[current_state] > RETREAT_TIME:
             move(BACKWARD)
-        if time.monotonic() - timer[current_state] > 1:
+        if time.monotonic() - timer[current_state] > 2 * RETREAT_TIME:
             log("Done with retreate", LOG_INFO)
             current_state = state["SEARCHING"]
             last_state_change_time = time.monotonic()
@@ -215,7 +222,8 @@ def update_fsm():
 
     elif current_state == state["AVOIDING"]:
         '''
-        What does this state do?
+        What does this state do? Back up and turn away from the edge of the doyho. The state implements a 'microstate'
+            which tells the fsm if it is avoiding from one of the edges or both.
         '''
         pixels_on = (255,255,255)
         pixels_off = (0,0,0)
@@ -266,7 +274,8 @@ def update_fsm():
 
     elif current_state == TESTING:
         '''
-        What does this state do?
+        What does this state do? Nothing useful. This state is used to test your code and could be used to prototype
+            new states if desired.
         '''
         # Some variables for this state
         pixels_on = (255,0,0)
