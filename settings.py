@@ -1,17 +1,19 @@
 # These settings affect the behaviors of your sumobot, such as how fast it moves and
 #   how wide of an arc it searches.
 
-MAX_SPEED = 1 # Ranges from 0 (doesn't move at all) to 1 (as fast as possible)
-MAX_DISTANCE = 500
+MAX_SPEED = 0.8 # Ranges from 0 (doesn't move at all) to 1 (as fast as possible)
+MAX_DISTANCE = 600
 
 TURN_DURATION = 0.2 # Number of seconds that the bot spends turning. ***NOT CURRENTLY USED***
 
 CHARGE_DURATION = 5 # Time to charge before giving up
-CHARGE_TOLERANCE = 20 # Difference between TOF sensors that triggers a right/left shift
+CHARGE_TOLERANCE = 25 # Difference between TOF sensors that triggers a right/left shift
 
-RETREAT_TIME = 0.5 # Time used in backing up and spinning during a retreat
+RETREAT_TIME = 1 # Time used in backing up and spinning during a retreat
 
-AVOIDANCE_TIME = 1 # Time to spend during the edge avoidance movement
+AVOIDANCE_TIME = 2 # Time to spend during the edge avoidance movement. The slower the motors, the longer this needs to be.
+
+TEST_TIME = 0.5 # Time to spend doing whatever is being done in the test state.
 
 # NONE OF THE VALUES BELOW SHOULD BE CHANGED
 

@@ -1,6 +1,7 @@
 from settings import * # Gets the custom settings
 import board # pin identification information
 import digitalio # for various digital IO operations
+import analogio # for the battery monitor
 from adafruit_vl53l0x import VL53L0X # for the TOF sensors
 import busio # for I2C communication with TOF sensor
 from time import sleep, monotonic
@@ -8,6 +9,7 @@ import keypad # To handle keypresses nicely
 from adafruit_motor.motor import DCMotor # for DC motors
 import pwmio # To adjust speeds
 import neopixel
+import simpleio
 
 ##################################################
 # Robot hardware settings
@@ -16,7 +18,7 @@ import neopixel
 ##################################################
 
 
-# Pin connected to piezo buzzer NOT IMPLEMENTED YET
+# Pin connected to piezo buzzer
 PIEZO_PIN = board.GP22
 
 # Pins connected to DC motors (swap variable names if your motors are connected differently)
@@ -44,6 +46,9 @@ I2C_LEFT_TOGGLE_PIN = board.GP6
 BATTERY_VOLTAGE_PIN = board.A3
 # Low battery threshold voltage
 BATTERY_VOLTAGE_THRESHOLD = 52500
+
+# Initialize battery
+battery = analogio.AnalogIn(BATTERY_VOLTAGE_PIN)
 
 # Initialize the motors operating the two wheels
 motor_right = DCMotor(
@@ -84,8 +89,8 @@ def log(message, level = LOG_NOTSET):
 
 FORWARD = (1, 1)
 BACKWARD = (-1,-1)
-HARD_RIGHT = (1,-1)
-HARD_LEFT = (-1,1)
+HARD_RIGHT = (-1,1)
+HARD_LEFT = (1,-1)
 RIGHT = (0,1)
 LEFT = (1,0)
 BACK_LEFT = (-1, 0)
@@ -102,6 +107,11 @@ def move(direction):
     motor_left.throttle = direction[1] * MAX_SPEED
     log(f'Motors activated ({motor_left.throttle},{motor_right.throttle})', LOG_DEBUG)
 
+def buzz():
+    '''
+    Creates the starting sound
+    '''
+    simpleio.tone(pin=PIEZO_PIN, frequency=523.25, duration=0.3)
 
 # We create a class for the TOF sensor because we need to incorporate signal averaging and an offset.
 class TOF():

@@ -6,7 +6,7 @@ import time
 #  and confirm that the same distance is measured with both TOF sensors.
 #  Adjust offsets as needed.
 tof_left.offset = 0
-tof_right.offset = -60
+tof_right.offset = -20
 
 # Initialize the current conditions
 conditions = get_conditions()
@@ -20,14 +20,17 @@ state = {
     "RETREATING": 4, # Moving away from the opponent
     "AVOIDING"  : 5, # Found the edge of the doyho and is moving around.
     "TESTING"   : 6, # A special state for debugging
+    "NOSTATE"   : 7, # A special state for the start of the bot. It will never be here.
 }
 
 # Make it easy to get the state name from its number
 state_name = {v: k for k, v in state.items()}
 
 # FSM variables
+# Set current_state to "TESTING" and you can minuplate the testing state to provide debug information
+# Otherwise, set it to "IDLE"
 current_state = state["IDLE"]
-previous_state = state["TESTING"] # This forces the logger to log the first entry into IDLE
+previous_state = state["NOSTATE"] # This forces the logger to log the first entry into IDLE
 last_state_change_time = 0
 timer = [0] * len(state) # Give each state a timer for things like blinking lights, moving motors
 microstate = None # Needed a global variable in some states (e.g. in what direction is an edge being avoided
@@ -46,14 +49,14 @@ def update_fsm():
         What does this state do? It does nothing except wait for a button press to move on to the next state.
         '''
         # Variables useful for this state
-        pixels_on = (255,0,0)
-        pixels_off = (0,0,0)
+        pixels_on = (0,255,0)
+        pixels_off = (255,0,0)
         event = conditions['key_events'] # to simplify typing
 
         # Enter state
         if not current_state == previous_state:
             previous_state = current_state
-            pixels.fill(pixels_off)
+            pixels.fill((255,0,0))
             move(STOP)
             log(f"Entered {state_name[current_state]} state.", LOG_INFO)
 
@@ -63,7 +66,7 @@ def update_fsm():
             if testing: # Will switch to TESTING
                 log("Will switch to TESTING state when button is released.", LOG_INFO)
             else:
-                pixels.fill(pixels_on)
+                pixels.fill((255,255,0))
         elif event and event.key_number == 0 and event.released:
             if testing:
                 current_state = state["TESTING"]
@@ -75,14 +78,14 @@ def update_fsm():
         # Exit state
         if not current_state == previous_state:
             log(f"Left {state_name[current_state]} state.", LOG_INFO)
-            pixels.fill(pixels_off)
+            pixels.fill((0,0,0))
 # /// end of IDLE state ///
 
     elif current_state == state["WAITING"]:
         '''
         What does this state do? It performs the five second (with blinking lights) delay before the bot can start attacking.
         '''
-        pixels_on = (0,0,255)
+        pixels_on = (0,255,0)
         pixels_off = (0,0,0)
 
         # Enter
@@ -91,6 +94,7 @@ def update_fsm():
             pixels.fill(pixels_on)
             log(f"Entered {state_name[current_state]} state.", LOG_INFO)
             timer[current_state] = last_state_change_time # Start the light blinking timer
+            buzz() # Make some noise.
 
         # Update
         if time.monotonic() - last_state_change_time >= WAITING_TIME:
@@ -117,7 +121,7 @@ def update_fsm():
         What does this state do? It rotates the bot to the right until it senses an opponent, at which point
             it switches to the CHARGING state. It will pay attention to the edge and enter AVOIDING if necessary.
         '''
-        pixels_on = (0,255,0)
+        pixels_on = (0,0,255)
         pixels_off = (0,0,0)
 
         # Enter
@@ -138,6 +142,7 @@ def update_fsm():
             last_state_change_time = time.monotonic()
         else:
             # Perform search movements (arcing)
+            # FIX AFTER MATCH: RIGHT and LEFT are reversed. This is actually going counter clockwise.
             move(HARD_RIGHT)  # Adjust as needed to implement the arc-search strategy
 
         # Exit state
@@ -151,7 +156,7 @@ def update_fsm():
         What does this state do? It heads toward the opponent, adjusting left/right as needed. It will back off
             after a user-defined time and try to attack again.
         '''
-        pixels_on = (255,255,0)
+        pixels_on = (255,0,255)
         pixels_off = (0,0,0)
 
         # Enter
@@ -163,7 +168,7 @@ def update_fsm():
 
         # Code to update current state
         if conditions["edge_left"] or conditions["edge_right"]:
-            print("Edge detected, transitioning to AVOIDING state.")
+            log("Edge detected, transitioning to AVOIDING state.", LOG_INFO)
             current_state = state["AVOIDING"]
             last_state_change_time = time.monotonic()
         if abs(conditions["tof_diff"]) > CHARGE_TOLERANCE: # Bot might be heading in the wrong direction
@@ -199,16 +204,16 @@ def update_fsm():
             pixels.fill(pixels_on)
             log(f"Entered {state_name[current_state]} state.", LOG_INFO)
             timer[current_state] = last_state_change_time # What is timer used for?
-            move(HARD_LEFT)
+            move(BACK_LEFT)
 
         # Code to update current state
         if conditions["edge_left"] or conditions["edge_right"]:
             log("Edge detected, switching to AVOIDING state.", LOG_INFO)
             current_state = state["AVOIDING"]
             last_state_change_time = time.monotonic()
-        if time.monotonic() - timer[current_state] > RETREAT_TIME:
+        if time.monotonic() - timer[current_state] > RETREAT_TIME/2:
             move(BACKWARD)
-        if time.monotonic() - timer[current_state] > 2 * RETREAT_TIME:
+        if time.monotonic() - timer[current_state] >  RETREAT_TIME:
             log("Done with retreate", LOG_INFO)
             current_state = state["SEARCHING"]
             last_state_change_time = time.monotonic()
@@ -231,6 +236,8 @@ def update_fsm():
         # Enter
         if not current_state == previous_state:
             previous_state = current_state
+            # Back up as soon as possible
+            move(BACKWARD)
             pixels.fill(pixels_on)
             log(f"Entered {state_name[current_state]} state.", LOG_INFO)
             timer[current_state] = last_state_change_time # What is timer used for?
@@ -243,20 +250,15 @@ def update_fsm():
                 microstate = -1
 
 
-        # Code to update current state
-        # perform movement
 
-        if microstate == -1: # The right edge triggered this state
-            move(BACK_LEFT)
-        elif microstate == 1:
-            move(BACK_RIGHT)
-        else:
-            move(BACKWARD)
-        if time.monotonic() - timer[current_state] > AVOIDANCE_TIME/2:
-            if microstate == 0: # we need to do another turn
-                move(HARD_LEFT)
+        # Code to update current state
+        # perform movement - breaking up total avoidance time into two phases, a backup and a hard turn.
+
+        if time.monotonic() - timer[current_state] > AVOIDANCE_TIME/2: # The /3 may be worth making a parameter
+            if microstate == -1:
+                move(HARD_RIGHT)
             else:
-                pass
+                move(HARD_LEFT)
         if time.monotonic() - timer[current_state] > AVOIDANCE_TIME:
             log("Switching to SEARCHING state.", LOG_INFO)
             current_state = state["SEARCHING"]
@@ -272,11 +274,17 @@ def update_fsm():
             microstate = None
 # /// end of AVOIDING state ///
 
-    elif current_state == TESTING:
+    elif current_state == state["TESTING"]:
         '''
         What does this state do? Nothing useful. This state is used to test your code and could be used to prototype
             new states if desired.
+        All logs are set to critical to make sure they are printed.
+        Set move_test to True to check motors
+        Set log_conditions to True to view the sensor readings
         '''
+
+        log_conditions = False
+        move_test = True
         # Some variables for this state
         pixels_on = (255,0,0)
         pixels_off = (0,0,0)
@@ -285,12 +293,41 @@ def update_fsm():
         if not current_state == previous_state:
             previous_state = current_state
             pixels.fill(pixels_on)
-            log(f"Entered {state_name[current_state]} state.", LOG_INFO)
-            timer[current_state] = last_state_change_time # What is timer used for?
+            log(f"Entered {state_name[current_state]} state.", LOG_CRITICAL)
+            timer[current_state] = time.monotonic()
         # Update
-        else:
-            log("Updating state", LOG_INFO)
-            current_state = state["IDLE"]
+        if log_conditions:
+            log(get_conditions(), LOG_CRITICAL)
+
+        if move_test:
+            if time.monotonic() - timer[current_state] < TEST_TIME:
+                move(FORWARD)
+                log("Moving forward", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 2*TEST_TIME:
+                move(BACKWARD)
+                log("Moving backward", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 3*TEST_TIME:
+                move(HARD_LEFT)
+                log("Moving hard left", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 4*TEST_TIME:
+                move(HARD_RIGHT)
+                log("Moving hard right", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 5*TEST_TIME:
+                move(RIGHT)
+                log("Turning right", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 6*TEST_TIME:
+                move(BACK_RIGHT)
+                log("Backing right", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 7*TEST_TIME:
+                move(LEFT)
+                log("Turning left", LOG_CRITICAL)
+            elif time.monotonic() - timer[current_state] < 8*TEST_TIME:
+                move(BACK_LEFT)
+                log("Backing left", LOG_CRITICAL)
+            else:
+                move(STOP)
+
+
         # Exit
         if not current_state == previous_state:
             log("Leaving state", LOG_INFO)
@@ -309,5 +346,5 @@ while True:
     if not conditions['key_events'] is None and conditions['key_events'].key_number == 1 and conditions['key_events'].pressed:
         current_state = state["IDLE"]
     update_fsm()  # Update the FSM in each iteration
-    time.sleep(0.01)  # Small delay to prevent overwhelming the processor
+    #time.sleep(0.01)  # Small delay to prevent overwhelming the processor
 
