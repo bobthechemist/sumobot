@@ -43,10 +43,10 @@
 2. Contestant Positioning
     1. Contestants stand by the dohyo behind their respective shikiri lines.
 3. Robot placement
-    1. At the gyoji's command, contestants place their robots behind their shikiri lines.
-        1. A contestant may place their robot in any part of the doyho behind their shikiri line
-        2. The robot may be facing in any direction at the start of the bout.
-        3. *A rule is needed about how to place the robot, not being able to replace it after viewing the competitor's placement.*        
+    1. At the gyoji's command of "Bots position," contestants must immediately hold their robots directly over the area they intend to place them, approximately 15cm (6 inches) above the dohyo.
+    2. The gyoji will then give the command "Place Bots," at which point contestants must lower their robots straight down onto the dohyo in one continuous motion, ensuring the final orientation is set during this movement.
+    3. No additional adjustments to the robot's position or orientation are allowed after it has been placed on the dohyo.
+    4. Failing to comply with these placement rules may be considered a minor violation. 
 4. Starting the bout
     1. The gyoji instructs the contestants to arm their robots.
     2. With a countdown ("three, two, one, release"), the contestants initiate the start sequence of their robots and step away from the dohyo.
