@@ -44,7 +44,7 @@
 2. Contestant Positioning
     1. Contestants stand by the dohyo behind their respective shikiri lines.
 3. Robot placement
-    1. At the gyoji's command of "Bots position," contestants must immediately hold their robots directly over the area they intend to place them, approximately 15cm (6 inches) above the dohyo.
+    1. At the gyoji's command of "Position bots," contestants must immediately hold their robots directly over the area they intend to place them, approximately 15cm (6 inches) above the dohyo.
     2. The gyoji will then give the command "Place Bots," at which point contestants must lower their robots straight down onto the dohyo in one continuous motion, ensuring the final orientation is set during this movement.
     3. No additional adjustments to the robot's position or orientation are allowed after it has been placed on the dohyo.
     4. Failing to comply with these placement rules may be considered a minor violation. 
@@ -52,6 +52,7 @@
     1. The robots must conform to the startup sequence described in `II.A. startup sequence`
     1. The gyoji instructs the contestants to arm their robots.
     2. With a countdown ("three, two, one, release"), the contestants initiate the start sequence of their robots and step away from the dohyo.
+        1. Contestants should step away at least 30 inches from the edge of the dohyo.
 5. False Start
     1. The gyoji may declare a false start if a robot starts before the word "release".
     2. The gyoji will declare a false start if they hear an audible sound from one of the robots prior to saying the word "release".
