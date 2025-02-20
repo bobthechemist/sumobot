@@ -182,7 +182,14 @@ def get_conditions():
 
     return condition_dict
 
-
+# Utility function to send messages as beeps
+def dit(num):
+    '''
+    Creates a dit
+    '''
+    for i in range(num):
+        simpleio.tone(pin=PIEZO_PIN, frequency=523.25, duration=0.01)
+        sleep(0.01)
 
 
 # Initialize pixels

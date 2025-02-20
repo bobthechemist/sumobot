@@ -1,12 +1,13 @@
 from settings import *
 from sumobot import *
 import time
+import random
 
 # Set offsets to zero, place a large object about 6-10 inches from the sumobot,
 #  and confirm that the same distance is measured with both TOF sensors.
 #  Adjust offsets as needed.
 tof_left.offset = 0
-tof_right.offset = -20
+tof_right.offset = -60
 
 # Initialize the current conditions
 conditions = get_conditions()
@@ -130,24 +131,31 @@ def update_fsm():
             pixels.fill(pixels_on)
             log(f"Entered {state_name[current_state]} state.", LOG_INFO)
             timer[current_state] = last_state_change_time # What is timer used for?
+            microstate = random.randint(0,1) # to make searching a bit variable this variable is shared, so it will be problematic
 
         # Update
         if conditions["edge_left"] or conditions["edge_right"]:
             log("Edge detected, switching to AVOIDING state.", LOG_INFO)
             current_state = state["AVOIDING"]
+            dit(5)
+            move(BACKWARD) # Don't want to wait until next update or else it may be too late
             last_state_change_time = time.monotonic()
         elif conditions["tof_left"] < MAX_DISTANCE or conditions["tof_right"] < MAX_DISTANCE:
             log("Opponent detected, switching to CHARGING state.", LOG_INFO)
+            dit(3)
+            move(FORWARD) # Waiting for next update and we may miss the opponent.
             current_state = state["CHARGING"]
             last_state_change_time = time.monotonic()
         else:
             # Perform search movements (arcing)
-            # FIX AFTER MATCH: RIGHT and LEFT are reversed. This is actually going counter clockwise.
-            move(HARD_RIGHT)  # Adjust as needed to implement the arc-search strategy
+            if microstate == 1:
+                move(HARD_RIGHT)  # Adjust as needed to implement the arc-search strategy
+            else:
+                move(HARD_LEFT)
 
         # Exit state
         if not current_state == previous_state:
-            log(f"Left {state_name[current_state]} state.", LOG_INFO)
+            log(f"Left {state_name[previous_state]} state. Going to {state_name[current_state]} state.", LOG_INFO)
             pixels.fill(pixels_off)
 # /// end of SEARCHING state ///
 
@@ -170,6 +178,7 @@ def update_fsm():
         if conditions["edge_left"] or conditions["edge_right"]:
             log("Edge detected, transitioning to AVOIDING state.", LOG_INFO)
             current_state = state["AVOIDING"]
+            move(BACKWARD) # Don't want to wait or might be too late.
             last_state_change_time = time.monotonic()
         if abs(conditions["tof_diff"]) > CHARGE_TOLERANCE: # Bot might be heading in the wrong direction
             log("Shifting approach", LOG_DEBUG)
@@ -204,17 +213,22 @@ def update_fsm():
             pixels.fill(pixels_on)
             log(f"Entered {state_name[current_state]} state.", LOG_INFO)
             timer[current_state] = last_state_change_time # What is timer used for?
-            move(BACK_LEFT)
+            random_direction = random.randint(0,1)
+            if random_direction == 1:
+                move(BACK_LEFT)
+            else:
+                move(BACK_RIGHT)
 
         # Code to update current state
         if conditions["edge_left"] or conditions["edge_right"]:
             log("Edge detected, switching to AVOIDING state.", LOG_INFO)
             current_state = state["AVOIDING"]
+            move(BACKWARD) # Don't want to drive too far off the doyho
             last_state_change_time = time.monotonic()
         if time.monotonic() - timer[current_state] > RETREAT_TIME/2:
             move(BACKWARD)
         if time.monotonic() - timer[current_state] >  RETREAT_TIME:
-            log("Done with retreate", LOG_INFO)
+            log("Done with retreat", LOG_INFO)
             current_state = state["SEARCHING"]
             last_state_change_time = time.monotonic()
 
@@ -283,8 +297,8 @@ def update_fsm():
         Set log_conditions to True to view the sensor readings
         '''
 
-        log_conditions = False
-        move_test = True
+        log_conditions = True
+        move_test = False
         # Some variables for this state
         pixels_on = (255,0,0)
         pixels_off = (0,0,0)
@@ -298,6 +312,7 @@ def update_fsm():
         # Update
         if log_conditions:
             log(get_conditions(), LOG_CRITICAL)
+            log(round(float(battery.value/65536)*100),LOG_CRITICAL)
 
         if move_test:
             if time.monotonic() - timer[current_state] < TEST_TIME:
